@@ -16,7 +16,7 @@ install:  {
   sta $228e
   lda #>updateEnemyReplacement
   sta $228f
-
+  
   lda #$4c              // JMP
   sta $93e9
   lda #<printMessageReplacement
@@ -40,6 +40,13 @@ install:  {
   lda #$ea              // NOP
   sta $2569
 
+  lda #$20              // JSR
+  sta $9969
+  lda #<b4SetupPatch
+  sta $996a 
+  lda #>b4SetupPatch
+  sta $996b
+ 
   lda #$f8              // Update raster.
   sta $2294
   lda #$29              // AND
@@ -99,20 +106,17 @@ printMessageReplacement:  {
   rts
 }
   
-ciaInterruptPatch:  {
+ciaInterruptPatch:  { // Play music in the CIA interrupt
   stx storeX
   sty storeY
-  lda zero        // lda playMuscFlag
+  lda playMusicFlag
   beq skipMusic
+  inc $d020
   jsr $1203
+  dec $d020
 skipMusic:
-  lda updateEnemyFlag
-  beq skipEnemy
-  jsr $814a
-skipEnemy:
   lda #$00
   sta playMusicFlag
-  sta updateEnemyFlag
   ldx storeX
   ldy storeY
   sta $d020
@@ -121,17 +125,6 @@ skipEnemy:
   }
 
 mainLoopPatch: { // Replacement for main loop
-  lda $dc0f
-  and #$01
-  beq install
-  lda $dc0d
-  and #$02
-  beq exit
-playMusic:
-  lda $07f1
-  bne exit
-  jsr $1203
-exit:
   lda printMessageFlag
   beq skipMessage
   lda #$00
@@ -140,21 +133,22 @@ exit:
 skipMessage:  
   lda #$00
   sta printMessageFlag
-  
   inc $ab
   lda $a9
   rts
-install:  
-  lda #$e7
-  sta $dc06
-  lda #$4f
-  sta $dc07
-  lda #$11
-  sta $dc0f
-  jmp playMusic
-
   }  
 
+b4SetupPatch: { // Move the update enemy to $b4 irq setup.
+  sta $d012
+  lda updateEnemyFlag
+  beq skipEnemy
+  jsr $814a
+skipEnemy:
+  lda #$00
+  sta updateEnemyFlag
+  rts
+  }
+  
 irq2179:  {
   sta $75
   sty $76
