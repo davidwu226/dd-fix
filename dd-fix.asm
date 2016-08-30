@@ -111,6 +111,7 @@ ciaInterruptPatch:  { // Play music in the CIA interrupt
   sty storeY
   lda playMusicFlag
   beq skipMusic
+  cli
   inc $d020
   jsr $1203
   dec $d020
